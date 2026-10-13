@@ -1,0 +1,111 @@
+﻿```razor
+@page "/"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using BlazorDbzPersonagem.Models
+@inject HttpClient Http
+
+<PageTitle>Personagem Dragon Ball</PageTitle>
+
+<h1>Informações do Personagem</h1>
+
+<div class="mb-3">
+    <label for="personagemId" class="form-label">
+        ID do personagem:
+    </label>
+
+    <input id="personagemId"
+           type="number"
+           class="form-control"
+           @bind="personagemId"
+           min="1" />
+
+    <button class="btn btn-primary mt-2"
+            @onclick="BuscarPersonagem">
+        Buscar personagem
+    </button>
+</div>
+
+@if (carregando)
+{
+    <p>Carregando informações...</p>
+}
+else if (!string.IsNullOrEmpty(erro))
+{
+    <p class="text-danger">@erro</p>
+}
+else if (personagem is not null)
+{
+    <h2>Informações do Personagem</h2>
+
+    <p>
+        <strong>Nome:</strong>
+        @personagem.Nome
+    </p>
+
+    <p>
+        <strong>Planeta de Origem:</strong>
+        @(personagem.PlanetaDeOrigem?.Nome ?? "Não informado")
+    </p>
+
+    <h3>Transformações:</h3>
+
+    @if (personagem.Transformacoes.Count > 0)
+    {
+        <ul>
+            @foreach (var transformacao in personagem.Transformacoes)
+            {
+                <li>@transformacao.Nome</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>Nenhuma transformação encontrada.</p>
+    }
+}
+
+@code {
+    private int personagemId = 1;
+    private Personagem? personagem;
+    private bool carregando;
+    private string erro = string.Empty;
+
+    private async Task BuscarPersonagem()
+    {
+        if (personagemId < 1)
+        {
+            erro = "Informe um ID válido.";
+            personagem = null;
+            return;
+        }
+
+        carregando = true;
+        erro = string.Empty;
+        personagem = null;
+
+        try
+        {
+            personagem = await Http.GetFromJsonAsync<Personagem>(
+                $"api/characters/{personagemId}");
+
+            if (personagem is null)
+            {
+                erro = "Personagem não encontrado.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            erro = $"Erro ao consultar a API: {ex.Message}";
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            erro = $"Erro ao interpretar os dados: {ex.Message}";
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}
+```
